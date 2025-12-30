@@ -99,9 +99,16 @@ class SRTGatewayUI {
             const data = await this.api.getSessions();
             
             if (data.ok) {
+                const oldSessions = this.sessions;
                 this.sessions = data.sessions;
+                
                 if (this.currentScreen === 'routes') {
-                    this.renderRoutes();
+                    // Only update if data actually changed or initial load
+                    if (oldSessions.length === 0) {
+                        this.renderRoutes();
+                    } else {
+                        this.updateRoutesInPlace();
+                    }
                 }
             }
         } catch (error) {
@@ -136,10 +143,110 @@ class SRTGatewayUI {
         });
 
         contentArea.innerHTML = '';
-        contentArea.appendChild(card);
+        contentArea.appendChild(routeList);
         
         // Draw sparklines after rendering
         setTimeout(() => this.drawAllSparklines(), 50);
+    }
+
+    /**
+     * Update routes in place without flickering (AJAX update)
+     */
+    updateRoutesInPlace() {
+        if (this.sessions.length === 0) {
+            this.renderRoutes();
+            return;
+        }
+
+        this.sessions.forEach(session => {
+            const existingCard = document.querySelector(`.route-card[data-port="${session.rx_port}"]`);
+            
+            if (!existingCard) {
+                // New route added, re-render all
+                this.renderRoutes();
+                return;
+            }
+
+            // Update status indicator
+            const statusEl = existingCard.querySelector('.route-status');
+            if (statusEl) {
+                statusEl.className = 'route-status';
+                if (session.status === 'running') {
+                    statusEl.classList.add(session.has_input ? 'status-running' : 'status-connecting');
+                } else {
+                    statusEl.classList.add('status-stopped');
+                }
+            }
+
+            // Update bitrate value
+            const bitrateEl = existingCard.querySelector('.bitrate-value');
+            if (bitrateEl) {
+                const newBitrate = (session.rx_bitrate || 0).toFixed(2);
+                if (bitrateEl.textContent !== `${newBitrate} Mbps`) {
+                    bitrateEl.textContent = `${newBitrate} Mbps`;
+                }
+            }
+
+            // Update route details if expanded
+            const isExpanded = this.expandedRoutes.has(session.rx_port);
+            if (isExpanded) {
+                const detailsSection = existingCard.querySelector('.route-details-section');
+                if (detailsSection) {
+                    // Update bitrate in details
+                    const detailBitrateEl = detailsSection.querySelector('.detail-row:nth-child(3) .detail-value');
+                    if (detailBitrateEl) {
+                        detailBitrateEl.textContent = `${(session.rx_bitrate || 0).toFixed(2)} Mbps`;
+                    }
+
+                    // Update destination bitrates
+                    if (session.routes) {
+                        session.routes.forEach((route, idx) => {
+                            const destBitrateEl = detailsSection.querySelector(`.destination-item:nth-child(${idx + 1}) .destination-bitrate`);
+                            if (destBitrateEl) {
+                                destBitrateEl.textContent = `${(route.tx_bitrate || 0).toFixed(2)} Mbps`;
+                            }
+                        });
+                    }
+                }
+            }
+
+            // Update action buttons (start/stop)
+            const actionsDiv = existingCard.querySelector('.route-actions');
+            if (actionsDiv) {
+                const startStopBtn = actionsDiv.querySelector('button:nth-last-child(2)');
+                if (startStopBtn) {
+                    if (session.status === 'running') {
+                        startStopBtn.innerHTML = '⏸';
+                        startStopBtn.title = 'Stop Route';
+                        startStopBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            ui.stopSession(session.rx_port);
+                        };
+                    } else {
+                        startStopBtn.innerHTML = '▶';
+                        startStopBtn.title = 'Start Route';
+                        startStopBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            ui.startSession(session.rx_port);
+                        };
+                    }
+                }
+            }
+
+            // Update sparkline
+            this.drawSparkline(`spark-rx-${session.rx_port}`, session.bitrate_history || []);
+        });
+
+        // Check for deleted routes
+        const allCards = document.querySelectorAll('.route-card');
+        allCards.forEach(card => {
+            const port = parseInt(card.dataset.port);
+            const exists = this.sessions.find(s => s.rx_port === port);
+            if (!exists) {
+                // Route was deleted, re-render all
+                this.renderRoutes();
+            }
+        });
     }
 
     /**
@@ -386,27 +493,66 @@ class SRTGatewayUI {
             const data = await this.api.getStats();
             const contentArea = document.getElementById('content-area');
             
-            contentArea.innerHTML = `
-                <div class="system-stats">
-                    <h2>System Statistics</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Total Routes</div>
-                            <div class="stat-value">${this.sessions.length}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Active Routes</div>
-                            <div class="stat-value">${this.sessions.filter(s => s.status === 'running').length}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Total Bitrate</div>
-                            <div class="stat-value">${this.calculateTotalBitrate().toFixed(2)} Mbps</div>
+            // Check if stats view already exists
+            let statsContainer = contentArea.querySelector('.system-stats');
+            
+            if (!statsContainer) {
+                // Initial render
+                contentArea.innerHTML = `
+                    <div class="system-stats">
+                        <h2>System Statistics</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Total Routes</div>
+                                <div class="stat-value" id="stat-total-routes">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Active Routes</div>
+                                <div class="stat-value" id="stat-active-routes">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total Bitrate</div>
+                                <div class="stat-value" id="stat-total-bitrate">0.00 Mbps</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
+            
+            // Update values smoothly without re-rendering
+            this.updateSystemStatsValues();
+            
         } catch (error) {
             this.showError(`Failed to load system stats: ${error.message}`);
+        }
+    }
+
+    /**
+     * Update system stats values without re-rendering
+     */
+    updateSystemStatsValues() {
+        const totalRoutes = this.sessions.length;
+        const activeRoutes = this.sessions.filter(s => s.status === 'running').length;
+        const totalBitrate = this.calculateTotalBitrate().toFixed(2);
+
+        // Update only if values changed
+        const totalEl = document.getElementById('stat-total-routes');
+        const activeEl = document.getElementById('stat-active-routes');
+        const bitrateEl = document.getElementById('stat-total-bitrate');
+
+        if (totalEl && totalEl.textContent !== totalRoutes.toString()) {
+            totalEl.textContent = totalRoutes;
+        }
+
+        if (activeEl && activeEl.textContent !== activeRoutes.toString()) {
+            activeEl.textContent = activeRoutes;
+        }
+
+        if (bitrateEl) {
+            const newText = `${totalBitrate} Mbps`;
+            if (bitrateEl.textContent !== newText) {
+                bitrateEl.textContent = newText;
+            }
         }
     }
 
@@ -435,8 +581,18 @@ class SRTGatewayUI {
      */
     handleWebSocketMessage(data) {
         if (data.type === 'stats_update') {
-            // Update sessions with new stats
-            this.loadSessions();
+            // Update sessions with new stats without full reload
+            if (data.sessions) {
+                this.sessions = data.sessions;
+                if (this.currentScreen === 'routes') {
+                    this.updateRoutesInPlace();
+                } else if (this.currentScreen === 'system') {
+                    this.updateSystemStatsValues();
+                }
+            } else {
+                // Fallback to loading sessions
+                this.loadSessions();
+            }
         }
     }
 
@@ -446,9 +602,11 @@ class SRTGatewayUI {
     startAutoRefresh() {
         this.refreshInterval = setInterval(() => {
             if (this.currentScreen === 'routes') {
-                this.loadSessions();
+                this.loadSessions(); // Will use updateRoutesInPlace for smooth updates
             } else if (this.currentScreen === 'system') {
-                this.renderSystemStats();
+                this.loadSessions().then(() => {
+                    this.updateSystemStatsValues(); // Update stats without re-render
+                });
             }
         }, 5000);
     }

@@ -244,6 +244,7 @@ body {
     height: 12px;
     border-radius: 50%;
     flex-shrink: 0;
+    transition: all 0.3s ease;
 }
 
 .status-running {
@@ -285,6 +286,7 @@ body {
 .bitrate-value {
     color: var(--accent-amber);
     font-weight: 600;
+    transition: all 0.3s ease;
 }
 
 .sparkline {
@@ -636,6 +638,7 @@ form {
     font-size: 32px;
     font-weight: 600;
     color: var(--accent-orange);
+    transition: all 0.3s ease;
 }
 
 /* Statistics Modal */
