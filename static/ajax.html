@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRT Gateway v6.5 - AJAX Edition</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>SRT Gateway</h1>
+                <div class="version">v6.5 AJAX</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-item active" data-screen="routes">
+                    📡 Routes
+                </div>
+                <div class="nav-item" data-screen="create">
+                    ➕ Create Route
+                </div>
+                <div class="nav-item" data-screen="system">
+                    📊 System Stats
+                </div>
+                <div class="nav-item" data-screen="settings">
+                    ⚙️ Settings
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div>Server: <span id="server-ip">Loading...</span></div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="connection-status">Connected</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h2 id="page-title">Routes</h2>
+                <div class="header-actions">
+                    <select id="bulk-actions" class="bulk-select">
+                        <option value="">Bulk Actions...</option>
+                        <option value="start">Start Selected</option>
+                        <option value="stop">Stop Selected</option>
+                        <option value="delete">Delete Selected</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="ui.openCreateSessionModal()">
+                        ➕ Create Route
+                    </button>
+                </div>
+            </header>
+
+            <div id="content-area" class="content-area">
+                <!-- Dynamic content loaded here via AJAX -->
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Session Modal -->
+    <div id="session-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Create New Route</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            
+            <form id="session-form">
+                <input type="hidden" id="route-count" name="route_count" value="0">
+                
+                <div class="form-section">
+                    <h4>Source Configuration</h4>
+                    <div class="form-grid">
+                        <div class="form-group form-group-full">
+                            <label>Route Name *</label>
+                            <input type="text" name="name" placeholder="e.g., Main Stream" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>RX Mode *</label>
+                            <select name="rx_mode" required>
+                                <option value="listener">Listener</option>
+                                <option value="caller">Caller</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>RX Port *</label>
+                            <input type="number" name="rx_port" min="1" max="65535" placeholder="8000" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>RX IP Address</label>
+                            <input type="text" name="rx_ip" placeholder="0.0.0.0" value="0.0.0.0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Latency (ms)</label>
+                            <input type="number" name="latency" value="120" min="0" max="8000">
+                        </div>
+                        
+                        <div class="form-group form-group-full">
+                            <label>Passphrase (optional)</label>
+                            <input type="password" name="passphrase" placeholder="Leave empty for no encryption">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-header">
+                        <h4>Destinations</h4>
+                        <button type="button" id="add-route-btn" class="btn btn-secondary">
+                            ➕ Add Destination
+                        </button>
+                    </div>
+                    <div id="routes-container">
+                        <!-- Dynamic route fields added here -->
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Route</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistics Modal -->
+    <div id="stats-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Route Statistics</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            
+            <div class="stats-content">
+                <div class="stats-controls">
+                    <select id="stats-timerange" onchange="ui.updateStatsTimeRange()">
+                        <option value="5">Last 5 minutes</option>
+                        <option value="15">Last 15 minutes</option>
+                        <option value="30">Last 30 minutes</option>
+                        <option value="60">Last hour</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="ui.refreshStats()">
+                        🔄 Refresh
+                    </button>
+                </div>
+                
+                <div id="stats-chart-container">
+                    <canvas id="stats-chart"></canvas>
+                </div>
+                
+                <div id="stats-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container"></div>
+
+    <!-- Load JavaScript Modules -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/forms.js"></script>
+    
+    <!-- Optional: Chart.js for statistics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</body>
+</html>
