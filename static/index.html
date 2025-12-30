@@ -2448,9 +2448,11 @@
         }
         
         function formatBitrate(bps) {
-            if (bps === 0) return '0 bps';
-            if (bps < 1000) return bps + ' bps';
-            if (bps < 1000000) return (bps / 1000).toFixed(1) + ' Kbps';
+            if (!bps || bps === 0) return '0.00 Mbps';
+            // If value is less than 1000, assume it's already in Mbps
+            if (bps < 1000) return bps.toFixed(2) + ' Mbps';
+            // Otherwise convert from bps to Mbps
+            if (bps < 1000000) return (bps / 1000).toFixed(2) + ' Kbps';
             return (bps / 1000000).toFixed(2) + ' Mbps';
         }
         
