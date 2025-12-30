@@ -1,0 +1,2996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRT Gateway v6.5</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Ember Orange Premium Theme */
+            --bg-main: #0e0e0e;
+            --bg-sidebar: #1a1612;
+            --bg-panel: #1e1a18;
+            --bg-hover: #2a2520;
+            --border-color: #3a3228;
+            --text-primary: #fff8f0;
+            --text-secondary: #c4b5a0;
+            --accent-orange: #ff6b35;
+            --accent-amber: #ff9f1c;
+            --accent-orange-hover: #ff8555;
+            --status-green: #4caf50;
+            --status-yellow: #ffb84d;
+            --status-red: #ff5252;
+            --status-gray: #6b6b6b;
+            --glow-orange: rgba(255, 107, 53, 0.3);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-orange);
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header .version {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 10px 0;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .nav-item.active {
+            background: var(--bg-hover);
+            border-left-color: var(--accent-orange);
+        }
+
+        .sidebar-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-footer .hostname {
+            margin-bottom: 5px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar h2 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 30px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-orange);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-orange-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #4a4a4a;
+        }
+
+        .btn-danger {
+            background: var(--status-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+        }
+
+        /* Route List */
+        .route-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .route-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .route-header {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .route-header:hover {
+            background: var(--bg-hover);
+        }
+
+        .route-expand-icon {
+            color: var(--text-secondary);
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .route-card.expanded .route-expand-icon {
+            transform: rotate(90deg);
+        }
+
+        .route-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .route-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-running { background: var(--status-green); }
+        .status-stopped { background: var(--status-gray); }
+        .status-connecting { background: var(--status-yellow); }
+        .status-error { background: var(--status-red); }
+
+        .route-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .route-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .route-details {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .route-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            padding: 10px 16px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-primary);
+            transition: all 0.2s;
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover {
+            background: #4a4a4a;
+            transform: scale(1.05);
+        }
+
+        .btn-icon.stats-btn {
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-amber));
+            border-color: var(--accent-orange);
+            font-size: 20px;
+        }
+
+        .btn-icon.stats-btn:hover {
+            box-shadow: 0 0 15px var(--glow-orange);
+        }
+
+        /* Route Details (Expanded) */
+        .route-body {
+            display: none;
+            border-top: 1px solid var(--border-color);
+            padding: 20px;
+            background: #2a2a2a;
+        }
+
+        .route-card.expanded .route-body {
+            display: block;
+        }
+
+        .stream-section {
+            margin-bottom: 20px;
+        }
+
+        .stream-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stream-item {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stream-item-info {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 200px 1fr 150px 100px;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .stream-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .stream-value {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .modal-footer {
+            padding: 15px 25px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Form */
+        .form-section {
+            margin-bottom: 25px;
+        }
+
+        .form-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--accent-orange);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .form-help {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* Stats Display */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 15px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-unit {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-left: 5px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--accent-orange);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Sparkline mini-graphs */
+        .sparkline {
+            display: inline-block;
+            width: 100px;
+            height: 25px;
+            vertical-align: middle;
+            margin: 0 8px;
+        }
+
+        .bitrate-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .bitrate-value {
+            color: var(--accent-orange);
+            font-weight: 600;
+            min-width: 80px;
+        }
+    </style>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>SRT Gateway</h1>
+                <div class="version">Version 6.1</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showScreen('routes')">Route List</div>
+                <div class="nav-item" onclick="showScreen('system')">Statistics</div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="hostname">
+                    <strong>Hostname:</strong> srt-gateway<br>
+                    <strong>IP:</strong> <span id="server-ip">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h2 id="screen-title">Route List</h2>
+                <div id="connection-status"></div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="action-bar" id="action-bar">
+                <button class="btn btn-primary" onclick="openCreateSessionModal()">
+                    <span>➕</span> Add Route
+                </button>
+                <div style="flex: 1"></div>
+                <button class="btn btn-secondary" onclick="toggleExpandAll()">
+                    <span id="expand-text">▶ Expand All</span>
+                </button>
+                <button class="btn btn-secondary" onclick="refreshRoutes()">🔄 Refresh</button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area" id="content-area">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading routes...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Session Modal -->
+    <div class="modal" id="createSessionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Route</h3>
+                <button class="modal-close" onclick="closeModal('createSessionModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="createSessionForm" onsubmit="createSession(event)">
+                    <!-- Route Information -->
+                    <div class="form-section">
+                        <div class="form-section-title">Route Information</div>
+                        <div class="form-group">
+                            <label class="form-label">Route Name *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" name="autostart" checked> Start once created
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Source Configuration -->
+                    <div class="form-section">
+                        <div class="form-section-title">Source (RX)</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Protocol *</label>
+                                <select class="form-control" name="rx_mode" required onchange="updateRxHostField()">
+                                    <option value="listener">SRT Listener</option>
+                                    <option value="caller">SRT Caller</option>
+                                    <option value="rendezvous">SRT Rendezvous</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">RX Port *</label>
+                                <input type="number" class="form-control" name="rx_port" min="1024" max="65535" required>
+                            </div>
+                        </div>
+                        <div class="form-row" id="rx_host_row" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" id="rx_host_label">Encoder IP Address *</label>
+                                <input type="text" class="form-control" id="rx_host_input" name="rx_host" placeholder="192.168.1.50">
+                                <small class="form-help" id="rx_host_help">IP address of the encoder (gateway connects TO encoder)</small>
+                            </div>
+                            <div class="form-group" id="rx_remote_port_group" style="display: none;">
+                                <label class="form-label" id="rx_remote_port_label">Remote Port *</label>
+                                <input type="number" class="form-control" name="rx_remote_port" placeholder="9000" min="1024" max="65535">
+                                <small class="form-help" id="rx_remote_port_help">Port on the remote device</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Latency (ms)</label>
+                                <input type="number" class="form-control" name="latency" value="120" min="20" max="8000">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Buffer Size (ms)</label>
+                                <input type="number" class="form-control" name="rx_buffer_ms" value="120" min="20" max="8000">
+                                <small class="form-help">Buffer size in milliseconds</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Stream ID</label>
+                                <input type="text" class="form-control" name="rx_streamid" placeholder="e.g., live/stream1">
+                                <small class="form-help">Optional stream identifier</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Bandwidth (bytes/sec)</label>
+                                <input type="number" class="form-control" name="rx_maxbw" value="0" min="0">
+                                <small class="form-help">0 = unlimited (e.g., 5000000 = 5 MB/s)</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Passphrase</label>
+                                <input type="text" class="form-control" name="passphrase" placeholder="10-79 characters">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Destination Configuration -->
+                    <div class="form-section">
+                        <div class="form-section-title">Destination (TX)</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Protocol *</label>
+                                <select class="form-control" name="tx_mode" required onchange="updateTxHostField()">
+                                    <option value="listener">SRT Listener</option>
+                                    <option value="caller">SRT Caller</option>
+                                    <option value="rendezvous">SRT Rendezvous</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">TX Port *</label>
+                                <input type="number" class="form-control" name="tx_port" min="1024" max="65535" required>
+                            </div>
+                        </div>
+                        <div class="form-row" id="tx_host_row" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" id="tx_host_label">Decoder IP Address *</label>
+                                <input type="text" class="form-control" id="tx_host_input" name="tx_host" placeholder="192.168.1.100">
+                                <small class="form-help" id="tx_host_help">IP address of the decoder (gateway connects TO decoder)</small>
+                            </div>
+                            <div class="form-group" id="tx_remote_port_group" style="display: none;">
+                                <label class="form-label" id="tx_remote_port_label">Remote Port *</label>
+                                <input type="number" class="form-control" name="tx_remote_port" placeholder="9000" min="1024" max="65535">
+                                <small class="form-help" id="tx_remote_port_help">Port on the remote device</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Latency (ms)</label>
+                                <input type="number" class="form-control" name="tx_latency" value="120" min="20" max="8000">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Buffer Size (ms)</label>
+                                <input type="number" class="form-control" name="tx_buffer_ms" value="120" min="20" max="8000">
+                                <small class="form-help">Buffer size in milliseconds</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Stream ID</label>
+                                <input type="text" class="form-control" name="tx_streamid" placeholder="e.g., live/stream1">
+                                <small class="form-help">Optional stream identifier</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Bandwidth (bytes/sec)</label>
+                                <input type="number" class="form-control" name="tx_maxbw" value="0" min="0">
+                                <small class="form-help">0 = unlimited (e.g., 5000000 = 5 MB/s)</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Passphrase</label>
+                                <input type="text" class="form-control" name="tx_passphrase" placeholder="10-79 characters">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createSessionModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="document.getElementById('createSessionForm').requestSubmit()">Create Route</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Route Modal -->
+    <div class="modal" id="addRouteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Destination</h3>
+                <button class="modal-close" onclick="closeModal('addRouteModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="addRouteForm" onsubmit="addRoute(event)">
+                    <input type="hidden" id="add_route_session_port" name="session_rx_port">
+                    
+                    <div class="form-section">
+                        <div class="form-section-title">New Destination</div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Protocol *</label>
+                                <select class="form-control" name="tx_mode" required onchange="updateAddRouteTxHostField()">
+                                    <option value="listener">SRT Listener</option>
+                                    <option value="caller">SRT Caller</option>
+                                    <option value="rendezvous">SRT Rendezvous</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">TX Port *</label>
+                                <input type="number" class="form-control" name="tx_port" min="1024" max="65535" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row" id="add_route_tx_host_row" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" id="add_route_tx_host_label">Decoder IP Address *</label>
+                                <input type="text" class="form-control" id="add_route_tx_host_input" name="tx_host" placeholder="192.168.1.100">
+                                <small class="form-help" id="add_route_tx_host_help">IP address of the decoder</small>
+                            </div>
+                            <div class="form-group" id="add_route_tx_remote_port_group" style="display: none;">
+                                <label class="form-label" id="add_route_tx_remote_port_label">Remote Port *</label>
+                                <input type="number" class="form-control" id="add_route_tx_remote_port_input" name="tx_remote_port" placeholder="9000" min="1024" max="65535">
+                                <small class="form-help" id="add_route_tx_remote_port_help">Port on the remote device</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Latency (ms)</label>
+                                <input type="number" class="form-control" name="latency" value="120" min="20" max="8000">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Buffer Size (ms)</label>
+                                <input type="number" class="form-control" name="buffer_size" value="120" min="20" max="8000">
+                                <small class="form-help">Buffer size in milliseconds</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Stream ID</label>
+                                <input type="text" class="form-control" name="tx_streamid" placeholder="e.g., live/stream1">
+                                <small class="form-help">Optional stream identifier</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Bandwidth (bytes/sec)</label>
+                                <input type="number" class="form-control" name="tx_maxbw" value="0" min="0">
+                                <small class="form-help">0 = unlimited (e.g., 5000000 = 5 MB/s)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Passphrase</label>
+                                <input type="text" class="form-control" name="passphrase" placeholder="10-79 characters">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addRouteModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="document.getElementById('addRouteForm').requestSubmit()">Add Destination</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit RX Modal -->
+    <div class="modal" id="editRXModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Source (RX)</h3>
+                <button class="modal-close" onclick="closeModal('editRXModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editRXForm" onsubmit="submitEditRX(event)">
+                    <input type="hidden" id="edit-rx-port" name="rx_port">
+                    
+                    <!-- Route Information -->
+                    <div class="form-section">
+                        <div class="form-section-title">Route Information</div>
+                        <div class="form-group">
+                            <label class="form-label">Route Name *</label>
+                            <input type="text" id="edit-rx-name" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <!-- Source Configuration -->
+                    <div class="form-section">
+                        <div class="form-section-title">Source (RX)</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Protocol *</label>
+                                <select class="form-control" id="edit-rx-mode" disabled>
+                                    <option value="listener">SRT Listener</option>
+                                    <option value="caller">SRT Caller</option>
+                                    <option value="rendezvous">SRT Rendezvous</option>
+                                </select>
+                                <small class="form-help">Protocol cannot be changed after creation</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">RX Port *</label>
+                                <input type="number" id="edit-rx-port-display" class="form-control" disabled>
+                                <small class="form-help">Port cannot be changed after creation</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Latency (ms)</label>
+                                <input type="number" id="edit-rx-latency" class="form-control" min="20" max="8000" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Buffer Size (ms)</label>
+                                <input type="number" id="edit-rx-buffer-ms" class="form-control" min="20" max="8000" required>
+                                <small class="form-help">Buffer size in milliseconds</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Stream ID</label>
+                                <input type="text" id="edit-rx-streamid" class="form-control" placeholder="e.g., live/stream1">
+                                <small class="form-help">Optional stream identifier</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Bandwidth (bytes/sec)</label>
+                                <input type="number" id="edit-rx-maxbw" class="form-control" min="0">
+                                <small class="form-help">0 = unlimited (e.g., 5000000 = 5 MB/s)</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Passphrase</label>
+                                <input type="text" id="edit-rx-passphrase" class="form-control" placeholder="10-79 characters">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editRXModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="document.getElementById('editRXForm').requestSubmit()">💾 Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit TX Modal -->
+    <div class="modal" id="editTXModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Destination (TX)</h3>
+                <button class="modal-close" onclick="closeModal('editTXModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editTXForm" onsubmit="submitEditTX(event)">
+                    <input type="hidden" id="edit-tx-id" name="id">
+                    
+                    <!-- Destination Configuration -->
+                    <div class="form-section">
+                        <div class="form-section-title">Destination (TX)</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Protocol *</label>
+                                <select class="form-control" id="edit-tx-mode" required onchange="toggleEditTXFields()">
+                                    <option value="listener">SRT Listener</option>
+                                    <option value="caller">SRT Caller</option>
+                                    <option value="rendezvous">SRT Rendezvous</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">TX Port *</label>
+                                <input type="number" id="edit-tx-port" class="form-control" min="1024" max="65535" required>
+                            </div>
+                        </div>
+                        <div class="form-row" id="edit-tx-host-row" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" id="edit-tx-host-label">Decoder IP Address *</label>
+                                <input type="text" class="form-control" id="edit-tx-host" placeholder="192.168.1.100">
+                                <small class="form-help" id="edit-tx-host-help">IP address of the decoder (gateway connects TO decoder)</small>
+                            </div>
+                            <div class="form-group" id="edit-tx-remote-port-group" style="display: none;">
+                                <label class="form-label" id="edit-tx-remote-port-label">Remote Port *</label>
+                                <input type="number" class="form-control" id="edit-tx-remote-port" placeholder="9000" min="1024" max="65535">
+                                <small class="form-help" id="edit-tx-remote-port-help">Port on the remote device</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Latency (ms)</label>
+                                <input type="number" id="edit-tx-latency" class="form-control" min="20" max="8000">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Buffer Size (ms)</label>
+                                <input type="number" id="edit-tx-buffer-ms" class="form-control" min="20" max="8000">
+                                <small class="form-help">Buffer size in milliseconds</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Stream ID</label>
+                                <input type="text" id="edit-tx-streamid" class="form-control" placeholder="e.g., live/stream1">
+                                <small class="form-help">Optional stream identifier</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Bandwidth (bytes/sec)</label>
+                                <input type="number" id="edit-tx-maxbw" class="form-control" min="0">
+                                <small class="form-help">0 = unlimited (e.g., 5000000 = 5 MB/s)</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Passphrase</label>
+                                <input type="text" id="edit-tx-passphrase" class="form-control" placeholder="10-79 characters">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editTXModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="document.getElementById('editTXForm').requestSubmit()">💾 Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Page Modal -->
+    <div class="modal" id="statisticsModal" style="display: none;">
+        <div class="modal-content" style="max-width: 1400px; height: 90vh;">
+            <div class="modal-header">
+                <h3>📊 Statistics - <span id="stats-session-name">Loading...</span></h3>
+                <button class="modal-close" onclick="closeStatsModal()">×</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;">
+                <!-- Time Range Selector -->
+                <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                    <span style="color: var(--text-secondary);">Time Range:</span>
+                    <select id="stats-time-range" class="form-control" style="width: auto;" onchange="updateStatsTimeRange()">
+                        <option value="60">Last 1 Minute</option>
+                        <option value="300" selected>Last 5 Minutes</option>
+                        <option value="1800">Last 30 Minutes</option>
+                        <option value="3600">Last 1 Hour</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="refreshStats()" style="margin-left: auto;">🔄 Refresh</button>
+                </div>
+
+                <!-- RX Input Section -->
+                <div class="form-section" style="margin-bottom: 30px;">
+                    <div class="form-section-title">📥 Input Stream (RX)</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: var(--bg-panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 5px;">Bitrate</div>
+                            <div style="color: var(--accent-orange); font-size: 1.8em; font-weight: 600;" id="stats-rx-bitrate">-- Mbps</div>
+                        </div>
+                        <div style="background: var(--bg-panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 5px;">RTT / Latency</div>
+                            <div style="color: var(--text-primary); font-size: 1.8em; font-weight: 600;" id="stats-rx-rtt">-- ms</div>
+                        </div>
+                        <div style="background: var(--bg-panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 5px;">Mode</div>
+                            <div style="color: var(--text-primary); font-size: 1.3em; font-weight: 600;" id="stats-rx-mode">--</div>
+                        </div>
+                        <div style="background: var(--bg-panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 5px;">Uptime</div>
+                            <div style="color: var(--text-primary); font-size: 1.3em; font-weight: 600;" id="stats-uptime">--</div>
+                        </div>
+                    </div>
+                    <!-- Combined Overview Chart -->
+                    <div style="background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); height: 350px; margin-bottom: 15px;">
+                        <canvas id="chart-combined-overview"></canvas>
+                    </div>
+                </div>
+
+                <!-- TX Output Sections (per route) -->
+                <div class="form-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div class="form-section-title">📤 Output Destinations (<span id="stats-route-count">0</span>)</div>
+                        <button class="btn btn-secondary" onclick="toggleAllStatsRoutes()" id="expand-all-stats-btn">▼ Expand All</button>
+                    </div>
+                    <div id="stats-routes-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let sessions = [];
+        let selectedRoutes = new Set();
+        let expandedRoutes = new Set(); // Track which routes are expanded
+        let allExpanded = false;
+
+        // Load server IP
+        fetch('/api/sessions')
+            .then(r => r.json())
+            .then(() => {
+                document.getElementById('server-ip').textContent = window.location.hostname;
+            })
+            .catch(() => {
+                document.getElementById('server-ip').textContent = window.location.hostname;
+            });
+
+        // Track current screen
+        let currentScreen = 'routes';
+
+        // Load sessions on page load
+        loadSessions();
+        setInterval(() => {
+            if (currentScreen === 'routes') {
+                loadSessions();
+            } else if (currentScreen === 'system') {
+                loadStatisticsData();
+            }
+        }, 5000);
+
+        async function loadSessions() {
+            try {
+                const response = await fetch(`${API_BASE}/sessions`);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    sessions = data.sessions;
+                    renderSessions();
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                showError('Failed to load routes');
+            }
+        }
+
+        function renderSessions() {
+            const contentArea = document.getElementById('content-area');
+            
+            if (sessions.length === 0) {
+                contentArea.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📡</div>
+                        <div class="empty-state-text">No routes configured</div>
+                        <button class="btn btn-primary" onclick="openCreateSessionModal()">Create Your First Route</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const routeList = document.createElement('div');
+            routeList.className = 'route-list';
+
+            sessions.forEach(session => {
+                const card = createRouteCard(session);
+                routeList.appendChild(card);
+            });
+
+            contentArea.innerHTML = '';
+            contentArea.appendChild(routeList);
+            
+            // Draw sparklines after a brief delay to ensure canvases are rendered
+            setTimeout(() => drawAllSparklines(), 50);
+        }
+
+        function createRouteCard(session) {
+            const card = document.createElement('div');
+            card.className = 'route-card';
+            card.dataset.port = session.rx_port;
+
+            // Status logic:
+            // Gray (stopped): status !== 'running'
+            // Orange (running, no data): status === 'running' && !has_input
+            // Green (running, streaming): status === 'running' && has_input
+            let statusClass = 'status-stopped'; // Gray by default
+            if (session.status === 'running') {
+                statusClass = session.has_input ? 'status-running' : 'status-connecting';
+            }
+            
+            card.innerHTML = `
+                <div class="route-header" onclick="toggleRouteExpand(${session.rx_port})">
+                    <span class="route-expand-icon">▶</span>
+                    <div class="route-status ${statusClass}"></div>
+                    <div class="route-info">
+                        <div class="route-name">${session.name}</div>
+                        <div class="route-details">
+                            Source: ${session.rx_mode} Port ${session.rx_port} | ${session.routes.length} Destination(s)
+                        </div>
+                        <div class="bitrate-display">
+                            <span class="bitrate-value">${(session.rx_bitrate || 0).toFixed(2)} Mbps</span>
+                            <canvas class="sparkline" id="spark-rx-${session.rx_port}" width="100" height="25"></canvas>
+                        </div>
+                    </div>
+                    <div class="route-actions">
+                        <button class="btn-icon stats-btn" onclick="event.stopPropagation(); openStatisticsModal(${session.rx_port})" title="View Statistics">
+                            📈
+                        </button>
+                        <button class="btn-icon" onclick="event.stopPropagation(); toggleSession(${session.rx_port})" title="${session.status === 'running' ? 'Pause' : 'Start'}">
+                            ${session.status === 'running' ? '⏸️' : '▶️'}
+                        </button>
+                        <button class="btn-icon" onclick="event.stopPropagation(); deleteSession(${session.rx_port})" title="Delete Route">🗑️</button>
+                    </div>
+                </div>
+                <div class="route-body">
+                    <div class="stream-section">
+                        <div class="stream-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Source</span>
+                            <button class="btn-icon" onclick="event.stopPropagation(); editRX(${session.rx_port})" title="Edit Source" style="font-size: 12px; padding: 4px 8px;">Edit</button>
+                        </div>
+                        <div class="stream-item">
+                            <div class="route-status ${statusClass}"></div>
+                            <div class="stream-item-info">
+                                <div>
+                                    <div class="stream-label">Name</div>
+                                    <div class="stream-value">${session.name}</div>
+                                </div>
+                                <div>
+                                    <div class="stream-label">Protocol</div>
+                                    <div class="stream-value">SRT ${session.rx_mode}</div>
+                                </div>
+                                <div>
+                                    <div class="stream-label">Port</div>
+                                    <div class="stream-value">${session.rx_port}</div>
+                                </div>
+                                <div>
+                                    <div class="stream-label">Latency</div>
+                                    <div class="stream-value">${session.latency}ms</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stream-section">
+                        <div class="stream-section-title">Destinations</div>
+                        ${session.routes.map(route => {
+                            // Destination status logic:
+                            // Gray: status stopped
+                            // Orange: status running but no clients connected
+                            // Green: status running AND clients connected
+                            let routeStatusClass = 'status-stopped';
+                            if (route.status === 'running') {
+                                routeStatusClass = (route.clients && route.clients > 0) ? 'status-running' : 'status-connecting';
+                            }
+                            return `
+                            <div class="stream-item">
+                                <div class="route-status ${routeStatusClass}"></div>
+                                <div class="stream-item-info">
+                                    <div>
+                                        <div class="stream-label">Port</div>
+                                        <div class="stream-value">${route.tx_port}</div>
+                                    </div>
+                                    <div>
+                                        <div class="stream-label">Protocol</div>
+                                        <div class="stream-value">SRT ${route.tx_mode}</div>
+                                    </div>
+                                    <div>
+                                        <div class="stream-label">Bitrate</div>
+                                        <div class="stream-value">${route.tx_bitrate ? route.tx_bitrate.toFixed(2) : '0.00'} Mbps</div>
+                                    </div>
+                                    <div>
+                                        <canvas class="sparkline" id="spark-tx-${route.id}" width="100" height="25"></canvas>
+                                    </div>
+                                    <div style="display: flex; gap: 5px;">
+                                        <button class="btn-icon" onclick="editTX(${route.id})" title="Edit Destination" style="font-size: 12px; padding: 4px 8px;">Edit</button>
+                                        <button class="btn-icon" onclick="deleteRoute(${route.id})" title="Delete Destination">🗑</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        }).join('')}
+                        <button class="btn btn-primary" onclick="openAddRouteModal(${session.rx_port})" style="margin-top: 10px;">
+                            ➕ Add Destination
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Restore expanded state if it was expanded before
+            if (expandedRoutes.has(session.rx_port)) {
+                card.classList.add('expanded');
+            }
+
+            return card;
+        }
+
+        function toggleRouteExpand(port) {
+            const card = document.querySelector(`.route-card[data-port="${port}"]`);
+            if (card.classList.contains('expanded')) {
+                card.classList.remove('expanded');
+                expandedRoutes.delete(port);
+            } else {
+                card.classList.add('expanded');
+                expandedRoutes.add(port);
+            }
+        }
+
+        function toggleExpandAll() {
+            allExpanded = !allExpanded;
+            document.querySelectorAll('.route-card').forEach(card => {
+                const port = parseInt(card.dataset.port);
+                if (allExpanded) {
+                    card.classList.add('expanded');
+                    expandedRoutes.add(port);
+                } else {
+                    card.classList.remove('expanded');
+                    expandedRoutes.delete(port);
+                }
+            });
+            document.getElementById('expand-text').textContent = allExpanded ? '▼ Collapse All' : '▶ Expand All';
+        }
+
+        function toggleRouteSelection(port) {
+            if (selectedRoutes.has(port)) {
+                selectedRoutes.delete(port);
+            } else {
+                selectedRoutes.add(port);
+            }
+        }
+
+        // Sparkline drawing functions
+        function drawSparkline(canvasId, data, color = '#ff6b35') {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Handle new format with timestamps and values
+            let points = [];
+            if (data && typeof data === 'object' && data.values) {
+                // New format: {values: [...], timestamps: [...]}
+                points = data.values || [];
+            } else if (Array.isArray(data)) {
+                // Old format: simple array
+                points = data;
+            }
+            
+            if (points.length === 0) return;
+            
+            // Use last 60 points for sparkline
+            points = points.slice(-60);
+            if (points.length < 2) return;
+            
+            // Find min/max for scaling
+            const max = Math.max(...points, 0.1); // Min 0.1 to avoid divide by zero
+            const min = 0; // Always start from 0 for bitrate
+            
+            // Draw line
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            
+            points.forEach((value, i) => {
+                const x = (i / (points.length - 1)) * width;
+                const y = height - ((value - min) / (max - min)) * height;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+        }
+
+        function drawAllSparklines() {
+            sessions.forEach(session => {
+                // Draw RX sparkline
+                if (session.rx_bitrate_history) {
+                    drawSparkline(`spark-rx-${session.rx_port}`, session.rx_bitrate_history, '#ff6b35');
+                }
+                
+                // Draw TX sparklines
+                session.routes.forEach(route => {
+                    if (route.tx_bitrate_history) {
+                        drawSparkline(`spark-tx-${route.id}`, route.tx_bitrate_history, '#4caf50');
+                    }
+                });
+            });
+        }
+
+        function updateRxHostField() {
+            const rxMode = document.querySelector('select[name="rx_mode"]').value;
+            const rxHostRow = document.getElementById('rx_host_row');
+            const rxHostInput = document.getElementById('rx_host_input');
+            const rxHostLabel = document.getElementById('rx_host_label');
+            const rxHostHelp = document.getElementById('rx_host_help');
+            const rxRemotePortGroup = document.getElementById('rx_remote_port_group');
+            const rxRemotePortLabel = document.getElementById('rx_remote_port_label');
+            const rxRemotePortHelp = document.getElementById('rx_remote_port_help');
+            const rxRemotePortInput = document.querySelector('input[name="rx_remote_port"]');
+            
+            if (rxMode === 'listener') {
+                rxHostRow.style.display = 'none';
+                rxHostInput.required = false;
+                rxHostInput.value = '';
+                rxRemotePortGroup.style.display = 'none';
+                rxRemotePortInput.required = false;
+            } else if (rxMode === 'caller') {
+                rxHostRow.style.display = 'block';
+                rxHostInput.required = true;
+                rxHostLabel.textContent = 'Encoder IP Address *';
+                rxHostHelp.textContent = 'IP address of the encoder (gateway connects TO encoder)';
+                rxRemotePortGroup.style.display = 'block';
+                rxRemotePortLabel.textContent = 'Remote Port *';
+                rxRemotePortHelp.textContent = 'Port on the remote encoder';
+                rxRemotePortInput.required = true;
+            } else if (rxMode === 'rendezvous') {
+                rxHostRow.style.display = 'block';
+                rxHostInput.required = true;
+                rxHostLabel.textContent = 'Peer IP Address *';
+                rxHostHelp.textContent = 'IP address of the rendezvous peer';
+                rxRemotePortGroup.style.display = 'block';
+                rxRemotePortLabel.textContent = 'Peer Port *';
+                rxRemotePortHelp.textContent = 'Port on the peer device';
+                rxRemotePortInput.required = true;
+            }
+        }
+
+        function updateTxHostField() {
+            const txMode = document.querySelector('select[name="tx_mode"]').value;
+            const txHostRow = document.getElementById('tx_host_row');
+            const txHostInput = document.getElementById('tx_host_input');
+            const txHostLabel = document.getElementById('tx_host_label');
+            const txHostHelp = document.getElementById('tx_host_help');
+            const txRemotePortGroup = document.getElementById('tx_remote_port_group');
+            const txRemotePortLabel = document.getElementById('tx_remote_port_label');
+            const txRemotePortHelp = document.getElementById('tx_remote_port_help');
+            const txRemotePortInput = document.querySelector('input[name="tx_remote_port"]');
+            
+            if (txMode === 'listener') {
+                txHostRow.style.display = 'none';
+                txHostInput.required = false;
+                txHostInput.value = '';
+                txRemotePortGroup.style.display = 'none';
+                txRemotePortInput.required = false;
+            } else if (txMode === 'caller') {
+                txHostRow.style.display = 'block';
+                txHostInput.required = true;
+                txHostLabel.textContent = 'Decoder IP Address *';
+                txHostHelp.textContent = 'IP address of the decoder (gateway connects TO decoder)';
+                txRemotePortGroup.style.display = 'block';
+                txRemotePortLabel.textContent = 'Remote Port *';
+                txRemotePortHelp.textContent = 'Port on the remote decoder';
+                txRemotePortInput.required = true;
+            } else if (txMode === 'rendezvous') {
+                txHostRow.style.display = 'block';
+                txHostInput.required = true;
+                txHostLabel.textContent = 'Peer IP Address *';
+                txHostHelp.textContent = 'IP address of the rendezvous peer';
+                txRemotePortGroup.style.display = 'block';
+                txRemotePortLabel.textContent = 'Peer Port *';
+                txRemotePortHelp.textContent = 'Port on the peer device';
+                txRemotePortInput.required = true;
+            }
+        }
+
+        function showSuccessToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 15px 25px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 500;';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function openCreateSessionModal() {
+            document.getElementById('createSessionModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        async function createSession(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+
+            const rxMode = formData.get('rx_mode');
+            const txMode = formData.get('tx_mode');
+            const rxHost = formData.get('rx_host') || '0.0.0.0';
+            const txHost = formData.get('tx_host') || '0.0.0.0';
+            
+            // Validation: Caller and Rendezvous require host addresses
+            if ((rxMode === 'caller' || rxMode === 'rendezvous') && (!rxHost || rxHost === '0.0.0.0')) {
+                alert(`Error: IP address is required for RX ${rxMode} mode`);
+                return;
+            }
+            
+            if ((txMode === 'caller' || txMode === 'rendezvous') && (!txHost || txHost === '0.0.0.0')) {
+                alert(`Error: IP address is required for TX ${txMode} mode`);
+                return;
+            }
+
+            // Convert buffer size from ms to bytes (approximation: 1ms = 1000 bytes for audio/video)
+            const rxBufferMs = parseInt(formData.get('rx_buffer_ms')) || 120;
+            const txBufferMs = parseInt(formData.get('tx_buffer_ms')) || 120;
+
+            const session = {
+                rx_port: parseInt(formData.get('rx_port')),
+                name: formData.get('name'),
+                rx_mode: rxMode,
+                rx_host: rxHost,
+                rx_remote_port: formData.get('rx_remote_port') ? parseInt(formData.get('rx_remote_port')) : null,
+                rx_streamid: formData.get('rx_streamid') || null,
+                rx_maxbw: parseInt(formData.get('rx_maxbw')) || 0,
+                latency: parseInt(formData.get('latency')),
+                buffer_size: rxBufferMs * 1000,
+                passphrase: formData.get('passphrase') || null,
+                routes: [{
+                    tx_port: parseInt(formData.get('tx_port')),
+                    tx_mode: txMode,
+                    tx_host: txHost,
+                    tx_remote_port: formData.get('tx_remote_port') ? parseInt(formData.get('tx_remote_port')) : null,
+                    tx_streamid: formData.get('tx_streamid') || null,
+                    tx_maxbw: parseInt(formData.get('tx_maxbw')) || 0,
+                    latency: parseInt(formData.get('tx_latency')),
+                    buffer_size: txBufferMs * 1000,
+                    passphrase: formData.get('tx_passphrase') || null
+                }]
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(session)
+                });
+
+                const data = await response.json();
+                
+                if (data.ok) {
+                    closeModal('createSessionModal');
+                    form.reset();
+                    updateRxHostField(); // Reset field visibility
+                    updateTxHostField(); // Reset field visibility
+                    await loadSessions();
+                    // Show success message
+                    showSuccessToast('✅ Route created successfully!');
+                } else {
+                    alert('Error creating route: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error creating route: ' + error.message);
+            }
+        }
+
+        async function toggleSession(port) {
+            const session = sessions.find(s => s.rx_port === port);
+            if (!session) return;
+            
+            const action = session.status === 'running' ? 'stop' : 'start';
+            
+            try {
+                const response = await fetch(`${API_BASE}/sessions/${port}/${action}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    await loadSessions();
+                    showSuccessToast(`✅ Route ${action === 'start' ? 'started' : 'stopped'}!`);
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function deleteSession(port) {
+            if (!confirm('Delete this route?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/sessions/${port}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                
+                if (data.ok) {
+                    await loadSessions();
+                } else {
+                    alert('Error deleting route: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error deleting route: ' + error.message);
+            }
+        }
+
+        async function deleteRoute(routeId) {
+            if (!confirm('Delete this route?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/routes/${routeId}/stop`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                
+                if (data.ok) {
+                    await loadSessions();
+                } else {
+                    alert('Error deleting route: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error deleting route: ' + error.message);
+            }
+        }
+
+        // Edit RX functions
+        async function editRX(rxPort) {
+            // Load current session data
+            const session = sessions.find(s => s.rx_port === rxPort);
+            if (!session) return;
+            
+            // Calculate buffer_ms from buffer_size (bytes to ms, approximate)
+            const bufferMs = Math.round((session.buffer_size || 25600000) / 1316 * 1.066);
+            
+            // Populate form
+            document.getElementById('edit-rx-port').value = rxPort;
+            document.getElementById('edit-rx-name').value = session.name;
+            document.getElementById('edit-rx-mode').value = session.rx_mode;
+            document.getElementById('edit-rx-port-display').value = rxPort;
+            document.getElementById('edit-rx-latency').value = session.latency;
+            document.getElementById('edit-rx-buffer-ms').value = bufferMs;
+            document.getElementById('edit-rx-streamid').value = session.rx_streamid || '';
+            document.getElementById('edit-rx-maxbw').value = session.rx_maxbw || 0;
+            document.getElementById('edit-rx-passphrase').value = session.passphrase || '';
+            
+            // Show modal
+            document.getElementById('editRXModal').classList.add('active');
+        }
+
+        async function submitEditRX(event) {
+            event.preventDefault();
+            
+            const rxPort = document.getElementById('edit-rx-port').value;
+            const bufferMs = parseInt(document.getElementById('edit-rx-buffer-ms').value);
+            const bufferSize = Math.round(bufferMs * 1316 / 1.066); // Convert ms to bytes
+            
+            const formData = {
+                name: document.getElementById('edit-rx-name').value,
+                latency: parseInt(document.getElementById('edit-rx-latency').value),
+                buffer_size: bufferSize,
+                rx_streamid: document.getElementById('edit-rx-streamid').value || null,
+                rx_maxbw: parseInt(document.getElementById('edit-rx-maxbw').value) || 0,
+                passphrase: document.getElementById('edit-rx-passphrase').value || null
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/sessions/${rxPort}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    closeModal('editRXModal');
+                    await loadSessions();
+                    showSuccessToast('✓ Source updated successfully! Changes applied with hot-reload.');
+                } else {
+                    alert('Error updating source: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error updating source: ' + error.message);
+            }
+        }
+
+        // Edit TX functions
+        async function editTX(routeId) {
+            // Find the route
+            let route = null;
+            for (const session of sessions) {
+                route = session.routes.find(r => r.id === routeId);
+                if (route) break;
+            }
+            if (!route) return;
+            
+            // Calculate buffer_ms from buffer_size
+            const bufferMs = Math.round((route.tx_buffer || 25600000) / 1316 * 1.066);
+            
+            // Populate form
+            document.getElementById('edit-tx-id').value = routeId;
+            document.getElementById('edit-tx-port').value = route.tx_port;
+            document.getElementById('edit-tx-mode').value = route.tx_mode;
+            document.getElementById('edit-tx-host').value = route.tx_host || '';
+            document.getElementById('edit-tx-remote-port').value = route.tx_remote_port || '';
+            document.getElementById('edit-tx-latency').value = route.tx_latency || 120;
+            document.getElementById('edit-tx-buffer-ms').value = bufferMs;
+            document.getElementById('edit-tx-streamid').value = route.tx_streamid || '';
+            document.getElementById('edit-tx-maxbw').value = route.tx_maxbw || 0;
+            document.getElementById('edit-tx-passphrase').value = route.tx_passphrase || '';
+            
+            toggleEditTXFields();
+            
+            // Show modal
+            document.getElementById('editTXModal').classList.add('active');
+        }
+
+        function toggleEditTXFields() {
+            const mode = document.getElementById('edit-tx-mode').value;
+            const hostRow = document.getElementById('edit-tx-host-row');
+            const hostInput = document.getElementById('edit-tx-host');
+            const hostLabel = document.getElementById('edit-tx-host-label');
+            const hostHelp = document.getElementById('edit-tx-host-help');
+            const remotePortGroup = document.getElementById('edit-tx-remote-port-group');
+            const remotePortInput = document.getElementById('edit-tx-remote-port');
+            const remotePortLabel = document.getElementById('edit-tx-remote-port-label');
+            const remotePortHelp = document.getElementById('edit-tx-remote-port-help');
+            
+            if (mode === 'listener') {
+                hostRow.style.display = 'none';
+                hostInput.required = false;
+                remotePortGroup.style.display = 'none';
+                remotePortInput.required = false;
+            } else if (mode === 'caller') {
+                hostRow.style.display = 'flex';
+                hostInput.required = true;
+                hostLabel.textContent = 'Decoder IP Address *';
+                hostHelp.textContent = 'IP address of the decoder (gateway connects TO decoder)';
+                remotePortGroup.style.display = 'block';
+                remotePortInput.required = false;
+                remotePortLabel.textContent = 'Remote Port';
+                remotePortHelp.textContent = 'Port on the remote device';
+            } else if (mode === 'rendezvous') {
+                hostRow.style.display = 'flex';
+                hostInput.required = true;
+                hostLabel.textContent = 'Peer IP Address *';
+                hostHelp.textContent = 'IP address of the peer device';
+                remotePortGroup.style.display = 'block';
+                remotePortInput.required = false;
+                remotePortLabel.textContent = 'Remote Port';
+                remotePortHelp.textContent = 'Optional: Port on peer (uses TX port if not specified)';
+            }
+        }
+
+        async function submitEditTX(event) {
+            event.preventDefault();
+            
+            const routeId = document.getElementById('edit-tx-id').value;
+            const bufferMs = parseInt(document.getElementById('edit-tx-buffer-ms').value);
+            const bufferSize = Math.round(bufferMs * 1316 / 1.066); // Convert ms to bytes
+            
+            const formData = {
+                tx_port: parseInt(document.getElementById('edit-tx-port').value),
+                tx_mode: document.getElementById('edit-tx-mode').value,
+                tx_host: document.getElementById('edit-tx-host').value || null,
+                tx_remote_port: parseInt(document.getElementById('edit-tx-remote-port').value) || null,
+                tx_latency: parseInt(document.getElementById('edit-tx-latency').value),
+                tx_buffer: bufferSize,
+                tx_streamid: document.getElementById('edit-tx-streamid').value || null,
+                tx_maxbw: parseInt(document.getElementById('edit-tx-maxbw').value) || 0,
+                tx_passphrase: document.getElementById('edit-tx-passphrase').value || null
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/routes/${routeId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    closeModal('editTXModal');
+                    await loadSessions();
+                    showSuccessToast('✓ Destination updated successfully! Changes applied with hot-reload.');
+                } else {
+                    alert('Error updating destination: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error updating destination: ' + error.message);
+            }
+        }
+
+        function viewStats(port) {
+            window.open(`/stats.html?port=${port}`, '_blank');
+        }
+
+        function openEditModal(port) {
+            alert('Edit functionality - to be implemented');
+        }
+
+        function openAddRouteModal(port) {
+            document.getElementById('add_route_session_port').value = port;
+            document.getElementById('addRouteModal').classList.add('active');
+            // Reset form
+            document.getElementById('addRouteForm').reset();
+            updateAddRouteTxHostField();
+        }
+
+        function updateAddRouteTxHostField() {
+            const txMode = document.querySelector('#addRouteForm select[name="tx_mode"]').value;
+            const txHostRow = document.getElementById('add_route_tx_host_row');
+            const txHostInput = document.getElementById('add_route_tx_host_input');
+            const txHostLabel = document.getElementById('add_route_tx_host_label');
+            const txHostHelp = document.getElementById('add_route_tx_host_help');
+            const txRemotePortGroup = document.getElementById('add_route_tx_remote_port_group');
+            const txRemotePortInput = document.getElementById('add_route_tx_remote_port_input');
+            const txRemotePortLabel = document.getElementById('add_route_tx_remote_port_label');
+            const txRemotePortHelp = document.getElementById('add_route_tx_remote_port_help');
+            
+            if (txMode === 'listener') {
+                txHostRow.style.display = 'none';
+                txHostInput.required = false;
+                txHostInput.value = '';
+                txRemotePortGroup.style.display = 'none';
+                txRemotePortInput.required = false;
+                txRemotePortInput.value = '';
+            } else if (txMode === 'caller') {
+                txHostRow.style.display = 'flex';
+                txHostInput.required = true;
+                txHostLabel.textContent = 'Decoder IP Address *';
+                txHostHelp.textContent = 'IP address of the decoder (gateway connects TO decoder)';
+                txRemotePortGroup.style.display = 'block';
+                txRemotePortInput.required = true;
+                txRemotePortLabel.textContent = 'Remote Port *';
+                txRemotePortHelp.textContent = 'Port on the remote decoder';
+            } else if (txMode === 'rendezvous') {
+                txHostRow.style.display = 'flex';
+                txHostInput.required = true;
+                txHostLabel.textContent = 'Peer IP Address *';
+                txHostHelp.textContent = 'IP address of the rendezvous peer';
+                txRemotePortGroup.style.display = 'block';
+                txRemotePortInput.required = true;
+                txRemotePortLabel.textContent = 'Peer Port *';
+                txRemotePortHelp.textContent = 'Port on the rendezvous peer';
+            }
+        }
+
+        async function addRoute(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const txMode = formData.get('tx_mode');
+            const txHost = formData.get('tx_host') || '0.0.0.0';
+            const txRemotePort = formData.get('tx_remote_port');
+            
+            // Validation
+            if ((txMode === 'caller' || txMode === 'rendezvous') && (!txHost || txHost === '0.0.0.0')) {
+                alert(`Error: IP address is required for ${txMode} mode`);
+                return;
+            }
+            
+            if ((txMode === 'caller' || txMode === 'rendezvous') && !txRemotePort) {
+                alert(`Error: Remote port is required for ${txMode} mode`);
+                return;
+            }
+            
+            const route = {
+                session_rx_port: parseInt(formData.get('session_rx_port')),
+                tx_port: parseInt(formData.get('tx_port')),
+                tx_mode: txMode,
+                tx_host: txHost,
+                tx_remote_port: txRemotePort ? parseInt(txRemotePort) : null,
+                latency: parseInt(formData.get('latency')),
+                buffer_size: (parseInt(formData.get('buffer_size')) || 120) * 1000,
+                tx_streamid: formData.get('tx_streamid') || null,
+                tx_maxbw: parseInt(formData.get('tx_maxbw')) || 0,
+                passphrase: formData.get('passphrase') || null
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/routes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(route)
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    closeModal('addRouteModal');
+                    form.reset();
+                    await loadSessions();
+                    showSuccessToast('✅ Destination added successfully!');
+                } else {
+                    alert('Error adding destination: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error adding destination: ' + error.message);
+            }
+        }
+
+        function startSelectedRoutes() {
+            alert(`Starting ${selectedRoutes.size} routes`);
+        }
+
+        function stopSelectedRoutes() {
+            alert(`Stopping ${selectedRoutes.size} routes`);
+        }
+
+        function deleteSelectedRoutes() {
+            if (selectedRoutes.size === 0) {
+                alert('No routes selected');
+                return;
+            }
+            
+            if (!confirm(`Delete ${selectedRoutes.size} routes?`)) return;
+            
+            selectedRoutes.forEach(port => {
+                deleteSession(port);
+            });
+            
+            selectedRoutes.clear();
+        }
+
+        function showScreen(screen) {
+            currentScreen = screen; // Track current screen
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (screen === 'routes') {
+                document.getElementById('screen-title').textContent = 'Route List';
+                document.getElementById('action-bar').style.display = 'flex';
+                loadSessions();
+            } else if (screen === 'system') {
+                document.getElementById('screen-title').textContent = 'Statistics';
+                document.getElementById('action-bar').style.display = 'none';
+                showStatistics();
+            }
+        }
+
+        function showStatistics() {
+            const contentArea = document.getElementById('content-area');
+            
+            if (sessions.length === 0) {
+                contentArea.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div class="empty-state-text">No statistics available</div>
+                        <div style="font-size: 14px; color: var(--text-secondary); margin-top: 10px;">
+                            Create routes to see real-time statistics
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Determine button text based on current state
+            const allExpanded = expandedPageRoutes.size === sessions.length && sessions.length > 0;
+            const btnText = allExpanded ? '▼ Collapse All' : '▶ Expand All';
+            
+            let html = `
+                <div style="max-width: 1400px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-size: 18px; font-weight: 600; color: var(--accent-orange);">
+                            📊 Real-Time Stream Statistics
+                        </h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-secondary" onclick="toggleAllPageRoutes()" id="pageExpandBtn">
+                                ${btnText}
+                            </button>
+                            <button class="btn btn-secondary" onclick="refreshStatisticsPage()">🔄 Refresh</button>
+                        </div>
+                    </div>
+            `;
+            
+            // Stats table for each route - EXPANDABLE
+            sessions.forEach((session, sessionIdx) => {
+                const statusClass = session.status === 'running' 
+                    ? (session.has_input ? 'status-running' : 'status-connecting')
+                    : 'status-stopped';
+                
+                const statusText = session.status === 'running'
+                    ? (session.has_input ? 'Streaming' : 'Running (No Input)')
+                    : 'Stopped';
+                
+                const isExpanded = expandedPageRoutes.has(session.rx_port);
+                
+                html += `
+                    <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 20px; overflow: hidden;">
+                        <!-- Route Header - Clickable -->
+                        <div onclick="togglePageRoute(${session.rx_port})" style="cursor: pointer; display: flex; align-items: center; gap: 15px; padding: 20px 25px; border-bottom: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                            <div style="font-size: 18px; transition: transform 0.2s;">${isExpanded ? '▼' : '▶'}</div>
+                            <div class="route-status ${statusClass}"></div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">${session.name}</div>
+                                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 3px;">
+                                    RX Port ${session.rx_port} • ${session.rx_mode.toUpperCase()} • ${statusText}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Content -->
+                        <div id="page-route-${session.rx_port}" style="display: ${isExpanded ? 'block' : 'none'}; padding: 25px;">
+                        
+                        <!-- RX Metrics Grid -->
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+                            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 15px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">RX BITRATE</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--accent-orange);" id="page-rx-bitrate-${session.rx_port}">${formatBitrate(session.rx_bitrate || 0)}</div>
+                            </div>
+                            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 15px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">RX RTT</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--text-primary);" id="page-rx-rtt-${session.rx_port}">${((session.rx_rtt !== undefined && session.rx_rtt !== null) ? session.rx_rtt : session.latency || 0).toFixed(2)}ms</div>
+                            </div>
+                            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 15px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">RX MODE</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--text-primary);">${session.rx_mode.toUpperCase()}</div>
+                            </div>
+                            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 15px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">UPTIME</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--text-primary);">${formatUptime(session.uptime || 0)}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Combined Overview Chart -->
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 25px;">
+                            <h4 style="font-size: 14px; font-weight: 600; color: var(--accent-orange); margin-bottom: 15px;">TRAFFIC OVERVIEW (RX + TX)</h4>
+                            <canvas id="page-combined-chart-${session.rx_port}" style="max-height: 250px;"></canvas>
+                        </div>
+                        
+                        <!-- RX Detailed Statistics -->
+                        <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 20px;">
+                            <h4 style="font-size: 14px; font-weight: 600; color: var(--accent-orange); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                🔽 SOURCE (RX) DETAILS
+                            </h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Input Status</div>
+                                    <div style="font-size: 18px; font-weight: 600; color: ${session.has_input ? 'var(--status-green)' : 'var(--status-gray)'};">
+                                        ${session.has_input ? '🟢 ACTIVE' : '⚪ NO INPUT'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Configured Latency</div>
+                                    <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">${session.latency}ms</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Protocol Mode</div>
+                                    <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">${session.rx_mode.toUpperCase()}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- TX Destinations Grid -->
+                        ${session.routes.map((route, idx) => `
+                            <div style="background: linear-gradient(135deg, var(--bg-main) 0%, rgba(255, 107, 53, 0.05) 100%); border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: ${idx < session.routes.length - 1 ? '20px' : '0'};">
+                                <h4 style="font-size: 14px; font-weight: 600; color: var(--accent-orange); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    🔼 DESTINATION ${idx + 1} • PORT ${route.tx_port}
+                                </h4>
+                                
+                                <!-- TX Metrics Cards -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                                    <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; padding: 12px;">
+                                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">TX BITRATE</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: var(--accent-amber);">${formatBitrate(route.tx_bitrate || 0)}</div>
+                                    </div>
+                                    <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; padding: 12px;">
+                                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">RTT</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${(route.rtt || 0).toFixed(2)}ms</div>
+                                    </div>
+                                    <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; padding: 12px;">
+                                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">CLIENTS</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: ${(route.clients || 0) > 0 ? 'var(--status-green)' : 'var(--status-gray)'};">${route.clients || 0}</div>
+                                    </div>
+                                    <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; padding: 12px;">
+                                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">PACKET LOSS</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: ${(route.packet_loss || 0) > 1 ? 'var(--status-red)' : 'var(--status-green)'};">${(route.packet_loss || 0).toFixed(3)}%</div>
+                                    </div>
+                                    <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; padding: 12px;">
+                                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">PROTOCOL</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${route.tx_mode.toUpperCase()}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- TX Detailed Chart -->
+                                <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; padding: 15px;">
+                                    <canvas id="page-tx-chart-${session.rx_port}-${idx}" style="max-height: 200px;"></canvas>
+                                </div>
+                            </div>
+                        `).join('')}
+                        
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+            contentArea.innerHTML = html;
+            
+            // Render charts for expanded routes
+            setTimeout(() => {
+                sessions.forEach((session, idx) => {
+                    if (expandedPageRoutes.has(session.rx_port)) {
+                        renderPageCharts(session);
+                    }
+                });
+            }, 100);
+        }
+
+        async function renderPageCharts(session) {
+            try {
+                const response = await fetch(`${API_BASE}/stats/history/${session.rx_port}?limit=300`);
+                const data = await response.json();
+                
+                console.log(`Stats data for port ${session.rx_port}:`, data);
+                
+                if (!data.ok) {
+                    console.error(`Stats API returned not ok for port ${session.rx_port}`);
+                    return;
+                }
+                
+                // Render combined chart
+                renderPageCombinedChart(data, session.rx_port);
+                
+                // Render TX charts
+                session.routes.forEach((route, idx) => {
+                    renderPageTXChart(data, session.rx_port, idx, route.tx_port);
+                });
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+            }
+        }
+
+        function renderPageCombinedChart(data, rxPort) {
+            const canvas = document.getElementById(`page-combined-chart-${rxPort}`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart
+            if (canvas.chart) {
+                canvas.chart.destroy();
+            }
+            
+            const datasets = [];
+            
+            // RX Dataset
+            if (data.rx_bitrate_history && data.rx_bitrate_history.values && data.rx_bitrate_history.values.length > 0) {
+                console.log(`RX bitrate history has ${data.rx_bitrate_history.values.length} points`);
+                datasets.push({
+                    label: 'RX',
+                    data: data.rx_bitrate_history.values.map((v, i) => ({
+                        x: data.rx_bitrate_history.timestamps[i] * 1000, // milliseconds
+                        y: v / 1000000 // Convert to Mbps
+                    })),
+                    borderColor: 'rgb(255, 107, 53)',
+                    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                });
+            } else {
+                console.warn('No RX bitrate history data available');
+            }
+            
+            // TX Datasets
+            if (data.routes) {
+                data.routes.forEach((route, idx) => {
+                    const colors = [
+                        { border: 'rgb(76, 175, 80)', bg: 'rgba(76, 175, 80, 0.1)' },
+                        { border: 'rgb(33, 150, 243)', bg: 'rgba(33, 150, 243, 0.1)' },
+                        { border: 'rgb(156, 39, 176)', bg: 'rgba(156, 39, 176, 0.1)' },
+                        { border: 'rgb(255, 152, 0)', bg: 'rgba(255, 152, 0, 0.1)' }
+                    ];
+                    const color = colors[idx % colors.length];
+                    
+                    if (route.tx_bitrate_history && route.tx_bitrate_history.values && route.tx_bitrate_history.values.length > 0) {
+                        console.log(`TX port ${route.port} bitrate history has ${route.tx_bitrate_history.values.length} points`);
+                        datasets.push({
+                            label: `TX ${route.port}`,
+                            data: route.tx_bitrate_history.values.map((v, i) => ({
+                                x: route.tx_bitrate_history.timestamps[i] * 1000,
+                                y: v / 1000000
+                            })),
+                            borderColor: color.border,
+                            backgroundColor: color.bg,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        });
+                    } else {
+                        console.warn(`No TX bitrate history for port ${route.port}`);
+                    }
+                });
+            }
+            
+            canvas.chart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: '#c4b5a0', font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(2)} Mbps`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: '#c4b5a0',
+                                callback: function(value, index) {
+                                    // Show every 30th point (1 minute intervals)
+                                    if (index % 30 === 0) {
+                                        const date = new Date(value);
+                                        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                    }
+                                    return '';
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: '#c4b5a0',
+                                callback: (value) => value.toFixed(1) + ' Mbps'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPageTXChart(data, rxPort, txIdx, txPort) {
+            const canvas = document.getElementById(`page-tx-chart-${rxPort}-${txIdx}`);
+            if (!canvas || !data.routes || !data.routes[txIdx]) return;
+            
+            const ctx = canvas.getContext('2d');
+            const route = data.routes[txIdx];
+            
+            if (canvas.chart) {
+                canvas.chart.destroy();
+            }
+            
+            const datasets = [];
+            
+            // TX Bitrate
+            if (route.tx_bitrate_history) {
+                datasets.push({
+                    label: 'TX Bitrate',
+                    data: route.tx_bitrate_history.values.map((v, i) => ({
+                        x: route.tx_bitrate_history.timestamps[i] * 1000,
+                        y: v / 1000000
+                    })),
+                    borderColor: 'rgb(255, 159, 28)',
+                    backgroundColor: 'rgba(255, 159, 28, 0.2)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y'
+                });
+            }
+            
+            // RTT
+            if (route.rtt_history) {
+                datasets.push({
+                    label: 'RTT',
+                    data: route.rtt_history.values.map((v, i) => ({
+                        x: route.rtt_history.timestamps[i] * 1000,
+                        y: v
+                    })),
+                    borderColor: 'rgb(156, 39, 176)',
+                    backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    yAxisID: 'y1'
+                });
+            }
+            
+            canvas.chart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: '#c4b5a0', font: { size: 11 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: '#c4b5a0',
+                                callback: function(value, index) {
+                                    if (index % 30 === 0) {
+                                        const date = new Date(value);
+                                        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                    }
+                                    return '';
+                                }
+                            }
+                        },
+                        y: {
+                            position: 'left',
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: '#c4b5a0',
+                                callback: (value) => value.toFixed(1) + ' Mbps'
+                            }
+                        },
+                        y1: {
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { display: false },
+                            ticks: { 
+                                color: '#c4b5a0',
+                                callback: (value) => value.toFixed(0) + ' ms'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const expandedPageRoutes = new Set();
+
+        function togglePageRoute(rxPort) {
+            if (expandedPageRoutes.has(rxPort)) {
+                expandedPageRoutes.delete(rxPort);
+            } else {
+                expandedPageRoutes.add(rxPort);
+            }
+            showStatistics();
+        }
+
+        function toggleAllPageRoutes() {
+            if (expandedPageRoutes.size === sessions.length) {
+                // Collapse all
+                expandedPageRoutes.clear();
+            } else {
+                // Expand all
+                sessions.forEach(s => expandedPageRoutes.add(s.rx_port));
+            }
+            showStatistics();
+        }
+
+        async function refreshStatisticsPage() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🔄 Refreshing...';
+            btn.disabled = true;
+            
+            try {
+                await loadStatisticsData();
+                btn.innerHTML = '✓ Refreshed';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 1000);
+            } catch (error) {
+                btn.innerHTML = '✗ Failed';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 1000);
+            }
+        }
+
+        async function loadStatisticsData() {
+            try {
+                const response = await fetch(`${API_BASE}/sessions`);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    sessions = data.sessions;
+                    
+                    // Update the page display
+                    showStatistics();
+                    
+                    // Update real-time values and charts for expanded routes
+                    sessions.forEach(session => {
+                        if (expandedPageRoutes.has(session.rx_port)) {
+                            // Update RX metrics
+                            const bitrateEl = document.getElementById(`page-rx-bitrate-${session.rx_port}`);
+                            const rttEl = document.getElementById(`page-rx-rtt-${session.rx_port}`);
+                            
+                            if (bitrateEl) {
+                                bitrateEl.textContent = formatBitrate(session.rx_bitrate || 0);
+                            }
+                            if (rttEl) {
+                                rttEl.textContent = (session.rx_rtt || session.latency || 0).toFixed(2) + 'ms';
+                            }
+                            
+                            // Re-render charts with updated data
+                            renderPageCharts(session);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        async function refreshRoutes() {
+            // Visual feedback: find the refresh button and temporarily disable it
+            const refreshBtn = event.target;
+            const originalText = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '🔄 Refreshing...';
+            refreshBtn.disabled = true;
+            
+            try {
+                await loadSessions();
+                refreshBtn.innerHTML = '✓ Refreshed';
+                setTimeout(() => {
+                    refreshBtn.innerHTML = originalText;
+                    refreshBtn.disabled = false;
+                }, 1000);
+            } catch (error) {
+                refreshBtn.innerHTML = '✗ Failed';
+                setTimeout(() => {
+                    refreshBtn.innerHTML = originalText;
+                    refreshBtn.disabled = false;
+                }, 1000);
+            }
+        }
+        
+        function formatBitrate(bps) {
+            if (bps === 0) return '0 bps';
+            if (bps < 1000) return bps + ' bps';
+            if (bps < 1000000) return (bps / 1000).toFixed(1) + ' Kbps';
+            return (bps / 1000000).toFixed(2) + ' Mbps';
+        }
+        
+        function formatUptime(seconds) {
+            if (seconds === 0) return '0s';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            if (minutes > 0) return `${minutes}m ${secs}s`;
+            return `${secs}s`;
+        }
+
+        function showError(message) {
+            const contentArea = document.getElementById('content-area');
+            contentArea.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <div class="empty-state-text">${message}</div>
+                    <button class="btn btn-primary" onclick="loadSessions()">Retry</button>
+                </div>
+            `;
+        }
+
+        // Statistics Page Functions
+        let statsCharts = {};
+        let currentStatsPort = null;
+        let statsRefreshInterval = null;
+
+        function openStatisticsModal(rxPort) {
+            currentStatsPort = rxPort;
+            const session = sessions.find(s => s.rx_port === rxPort);
+            if (!session) return;
+
+            document.getElementById('stats-session-name').textContent = session.name;
+            document.getElementById('statisticsModal').style.display = 'flex';
+            
+            // Initial load
+            loadStats(rxPort);
+            
+            // Auto-refresh every 2 seconds
+            if (statsRefreshInterval) clearInterval(statsRefreshInterval);
+            statsRefreshInterval = setInterval(() => loadStats(rxPort), 5000);
+        }
+
+        function closeStatsModal() {
+            document.getElementById('statisticsModal').style.display = 'none';
+            if (statsRefreshInterval) {
+                clearInterval(statsRefreshInterval);
+                statsRefreshInterval = null;
+            }
+            // Destroy all charts
+            Object.values(statsCharts).forEach(chart => chart.destroy());
+            statsCharts = {};
+        }
+
+        async function loadStats(rxPort) {
+            try {
+                const limit = document.getElementById('stats-time-range').value;
+                const response = await fetch(`${API_BASE}/stats/history/${rxPort}?limit=${limit}`);
+                
+                if (!response.ok) throw new Error('Stats not available');
+                
+                const data = await response.json();
+                renderStats(data);
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        let expandedStatsRoutes = new Set();
+
+        function renderStats(data) {
+            // Update summary stats with animation
+            animateValue('stats-rx-bitrate', (data.rx_bitrate || 0).toFixed(2) + ' Mbps');
+            animateValue('stats-rx-rtt', (data.rx_rtt || 0).toFixed(2) + ' ms');
+            document.getElementById('stats-rx-mode').textContent = (data.rx_mode || 'unknown').toUpperCase();
+            document.getElementById('stats-uptime').textContent = formatUptime(data.uptime || 0);
+
+            // Combined Overview Chart (RX + all TX)
+            renderCombinedChart(data);
+
+            // TX Routes
+            const routesContainer = document.getElementById('stats-routes-container');
+            const routeIds = Object.keys(data.routes || {});
+            
+            document.getElementById('stats-route-count').textContent = routeIds.length;
+            
+            if (routeIds.length === 0) {
+                routesContainer.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 40px;">No destinations configured</div>';
+                return;
+            }
+
+            let html = '';
+            routeIds.forEach((routeId, index) => {
+                const route = data.routes[routeId];
+                const isExpanded = expandedStatsRoutes.has(routeId);
+                const statusColor = route.clients > 0 ? 'var(--status-green)' : 'var(--status-gray)';
+                
+                html += `
+                    <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; overflow: hidden;">
+                        <!-- Route Header (Always Visible) -->
+                        <div onclick="toggleStatsRoute('${routeId}')" style="padding: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg-hover);">
+                            <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                                <span style="font-size: 1.2em;">${isExpanded ? '▼' : '▶'}</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1em; color: var(--text-primary);">Route ${parseInt(routeId)} - Port ${route.port}</div>
+                                    <div style="font-size: 0.9em; color: var(--text-secondary); margin-top: 3px;">
+                                        ${(route.tx_bitrate || 0).toFixed(2)} Mbps  •  ${route.clients || 0} client${route.clients !== 1 ? 's' : ''}  •  ${(route.rtt || 0).toFixed(1)} ms RTT
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 12px; height: 12px; border-radius: 50%; background: ${statusColor}; box-shadow: 0 0 8px ${statusColor};"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Route Details (Expandable) -->
+                        <div id="stats-route-details-${routeId}" style="display: ${isExpanded ? 'block' : 'none'};">
+                            <div style="padding: 20px;">
+                                <!-- Metrics Grid -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                                    <div style="background: var(--bg-main); padding: 12px; border-radius: 6px; text-align: center;">
+                                        <div style="color: var(--text-secondary); font-size: 0.85em; margin-bottom: 5px;">TX Bitrate</div>
+                                        <div style="color: var(--accent-amber); font-size: 1.4em; font-weight: 600;">${(route.tx_bitrate || 0).toFixed(2)}</div>
+                                        <div style="color: var(--text-secondary); font-size: 0.8em;">Mbps</div>
+                                    </div>
+                                    <div style="background: var(--bg-main); padding: 12px; border-radius: 6px; text-align: center;">
+                                        <div style="color: var(--text-secondary); font-size: 0.85em; margin-bottom: 5px;">Clients</div>
+                                        <div style="color: ${statusColor}; font-size: 1.4em; font-weight: 600;">${route.clients || 0}</div>
+                                        <div style="color: var(--text-secondary); font-size: 0.8em;">Connected</div>
+                                    </div>
+                                    <div style="background: var(--bg-main); padding: 12px; border-radius: 6px; text-align: center;">
+                                        <div style="color: var(--text-secondary); font-size: 0.85em; margin-bottom: 5px;">RTT</div>
+                                        <div style="color: var(--text-primary); font-size: 1.4em; font-weight: 600;">${(route.rtt || 0).toFixed(2)}</div>
+                                        <div style="color: var(--text-secondary); font-size: 0.8em;">ms</div>
+                                    </div>
+                                    <div style="background: var(--bg-main); padding: 12px; border-radius: 6px; text-align: center;">
+                                        <div style="color: var(--text-secondary); font-size: 0.85em; margin-bottom: 5px;">Packet Loss</div>
+                                        <div style="color: ${(route.packet_loss || 0) > 1 ? 'var(--status-red)' : 'var(--status-green)'}; font-size: 1.4em; font-weight: 600;">${(route.packet_loss || 0).toFixed(3)}</div>
+                                        <div style="color: var(--text-secondary); font-size: 0.8em;">%</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Bitrate Chart -->
+                                <div style="background: var(--bg-main); padding: 15px; border-radius: 8px; height: 280px; margin-bottom: 15px;">
+                                    <canvas id="chart-tx-bitrate-${routeId}"></canvas>
+                                </div>
+                                
+                                <!-- Dual Axis Chart (Bitrate + RTT) -->
+                                <div style="background: var(--bg-main); padding: 15px; border-radius: 8px; height: 280px;">
+                                    <canvas id="chart-tx-dual-${routeId}"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            routesContainer.innerHTML = html;
+
+            // Render charts for expanded routes
+            routeIds.forEach(routeId => {
+                if (expandedStatsRoutes.has(routeId)) {
+                    const route = data.routes[routeId];
+                    renderChart(`chart-tx-bitrate-${routeId}`, `TX Bitrate (Mbps)`, route.tx_bitrate_history, 'rgb(255, 159, 28)');
+                    renderDualAxisChart(`chart-tx-dual-${routeId}`, route);
+                }
+            });
+        }
+
+        function animateValue(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.transition = 'color 0.3s';
+                element.style.color = 'var(--accent-amber)';
+                element.textContent = newValue;
+                setTimeout(() => {
+                    element.style.color = '';
+                }, 300);
+            }
+        }
+
+        function toggleStatsRoute(routeId) {
+            if (expandedStatsRoutes.has(routeId)) {
+                expandedStatsRoutes.delete(routeId);
+            } else {
+                expandedStatsRoutes.add(routeId);
+            }
+            if (currentStatsPort) {
+                loadStats(currentStatsPort);
+            }
+        }
+
+        function toggleAllStatsRoutes() {
+            const btn = document.getElementById('expand-all-stats-btn');
+            const allExpanded = expandedStatsRoutes.size > 0;
+            
+            if (allExpanded) {
+                expandedStatsRoutes.clear();
+                btn.textContent = '▼ Expand All';
+            } else {
+                // Expand all routes
+                const routeIds = Object.keys(window.currentStatsData?.routes || {});
+                routeIds.forEach(id => expandedStatsRoutes.add(id));
+                btn.textContent = '▲ Collapse All';
+            }
+            
+            if (currentStatsPort) {
+                loadStats(currentStatsPort);
+            }
+        }
+
+        function renderChart(canvasId, label, historyData, color) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart
+            if (statsCharts[canvasId]) {
+                statsCharts[canvasId].destroy();
+            }
+
+            const timestamps = historyData?.timestamps || [];
+            const values = historyData?.values || [];
+
+            // Convert timestamps to readable labels
+            const labels = timestamps.map(ts => {
+                const date = new Date(ts * 1000);
+                return date.toLocaleTimeString();
+            });
+
+            statsCharts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: values,
+                        borderColor: color,
+                        backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 26, 24, 0.95)',
+                            titleColor: '#fff8f0',
+                            bodyColor: '#c4b5a0',
+                            borderColor: '#3a3228',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.parsed.y.toFixed(2)} Mbps`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(58, 50, 40, 0.3)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#c4b5a0',
+                                maxRotation: 0,
+                                autoSkipPadding: 20
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(58, 50, 40, 0.3)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#c4b5a0',
+                                callback: function(value) {
+                                    return value.toFixed(1);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCombinedChart(data) {
+            const canvas = document.getElementById('chart-combined-overview');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart
+            if (statsCharts['chart-combined-overview']) {
+                statsCharts['chart-combined-overview'].destroy();
+            }
+
+            // Store data globally for expand/collapse
+            window.currentStatsData = data;
+
+            const timestamps = data.rx_bitrate_history?.timestamps || [];
+            const labels = timestamps.map(ts => new Date(ts * 1000).toLocaleTimeString());
+
+            // Build datasets: RX + all TX outputs
+            const datasets = [];
+            
+            // RX Dataset
+            datasets.push({
+                label: 'RX Input',
+                data: data.rx_bitrate_history?.values || [],
+                borderColor: 'rgb(255, 107, 53)',
+                backgroundColor: 'rgba(255, 107, 53, 0.15)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 6
+            });
+
+            // TX Datasets (different color for each)
+            const colors = [
+                'rgb(255, 159, 28)',   // Orange
+                'rgb(76, 175, 80)',    // Green
+                'rgb(33, 150, 243)',   // Blue
+                'rgb(156, 39, 176)',   // Purple
+                'rgb(255, 193, 7)',    // Amber
+                'rgb(0, 188, 212)'     // Cyan
+            ];
+
+            Object.entries(data.routes || {}).forEach(([routeId, route], index) => {
+                datasets.push({
+                    label: `TX Route ${routeId} (Port ${route.port})`,
+                    data: route.tx_bitrate_history?.values || [],
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 5
+                });
+            });
+
+            statsCharts['chart-combined-overview'] = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#c4b5a0',
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 26, 24, 0.95)',
+                            titleColor: '#fff8f0',
+                            bodyColor: '#c4b5a0',
+                            borderColor: '#3a3228',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' Mbps';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(58, 50, 40, 0.3)', drawBorder: false },
+                            ticks: { color: '#c4b5a0', maxRotation: 0, autoSkipPadding: 20 }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(58, 50, 40, 0.3)', drawBorder: false },
+                            ticks: {
+                                color: '#c4b5a0',
+                                callback: function(value) { return value.toFixed(1) + ' Mbps'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderDualAxisChart(canvasId, route) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            if (statsCharts[canvasId]) {
+                statsCharts[canvasId].destroy();
+            }
+
+            const timestamps = route.tx_bitrate_history?.timestamps || [];
+            const labels = timestamps.map(ts => new Date(ts * 1000).toLocaleTimeString());
+
+            // Create RTT array (replicate current RTT for all timestamps)
+            const rttValues = timestamps.map(() => route.rtt || 0);
+
+            statsCharts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Bitrate (Mbps)',
+                            data: route.tx_bitrate_history?.values || [],
+                            borderColor: 'rgb(255, 159, 28)',
+                            backgroundColor: 'rgba(255, 159, 28, 0.2)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y',
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'RTT (ms)',
+                            data: rttValues,
+                            borderColor: 'rgb(33, 150, 243)',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            yAxisID: 'y1',
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: '#c4b5a0', usePointStyle: true, padding: 12 }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 26, 24, 0.95)',
+                            titleColor: '#fff8f0',
+                            bodyColor: '#c4b5a0',
+                            borderColor: '#3a3228',
+                            borderWidth: 1,
+                            padding: 12
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(58, 50, 40, 0.3)', drawBorder: false },
+                            ticks: { color: '#c4b5a0', maxRotation: 0, autoSkipPadding: 20 }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            grid: { color: 'rgba(58, 50, 40, 0.3)', drawBorder: false },
+                            ticks: {
+                                color: 'rgb(255, 159, 28)',
+                                callback: function(value) { return value.toFixed(1); }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Bitrate (Mbps)',
+                                color: 'rgb(255, 159, 28)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                color: 'rgb(33, 150, 243)',
+                                callback: function(value) { return value.toFixed(1); }
+                            },
+                            title: {
+                                display: true,
+                                text: 'RTT (ms)',
+                                color: 'rgb(33, 150, 243)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStatsTimeRange() {
+            if (currentStatsPort) {
+                loadStats(currentStatsPort);
+            }
+        }
+
+        function refreshStats() {
+            if (currentStatsPort) {
+                const btn = event?.target;
+                if (btn) {
+                    btn.textContent = '⏳ Refreshing...';
+                    btn.disabled = true;
+                }
+                loadStats(currentStatsPort).then(() => {
+                    if (btn) {
+                        btn.textContent = '🔄 Refresh';
+                        btn.disabled = false;
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
