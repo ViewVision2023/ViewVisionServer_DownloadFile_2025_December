@@ -150,6 +150,20 @@ class SRTGatewayUI {
     }
 
     /**
+     * Convert bitrate to Mbps
+     */
+    formatBitrate(bitrate) {
+        if (!bitrate) return '0.00';
+        // If value is very small, it's likely already in Mbps
+        // If value is large, it's in bps and needs conversion
+        if (bitrate < 1000) {
+            return bitrate.toFixed(2);
+        }
+        // Convert bps to Mbps
+        return (bitrate / 1000000).toFixed(2);
+    }
+
+    /**
      * Update routes in place without flickering (AJAX update)
      */
     updateRoutesInPlace() {
@@ -181,7 +195,7 @@ class SRTGatewayUI {
             // Update bitrate value
             const bitrateEl = existingCard.querySelector('.bitrate-value');
             if (bitrateEl) {
-                const newBitrate = (session.rx_bitrate || 0).toFixed(2);
+                const newBitrate = this.formatBitrate(session.rx_bitrate);
                 if (bitrateEl.textContent !== `${newBitrate} Mbps`) {
                     bitrateEl.textContent = `${newBitrate} Mbps`;
                 }
@@ -195,7 +209,7 @@ class SRTGatewayUI {
                     // Update bitrate in details
                     const detailBitrateEl = detailsSection.querySelector('.detail-row:nth-child(3) .detail-value');
                     if (detailBitrateEl) {
-                        detailBitrateEl.textContent = `${(session.rx_bitrate || 0).toFixed(2)} Mbps`;
+                        detailBitrateEl.textContent = `${this.formatBitrate(session.rx_bitrate)} Mbps`;
                     }
 
                     // Update destination bitrates
@@ -203,7 +217,7 @@ class SRTGatewayUI {
                         session.routes.forEach((route, idx) => {
                             const destBitrateEl = detailsSection.querySelector(`.destination-item:nth-child(${idx + 1}) .destination-bitrate`);
                             if (destBitrateEl) {
-                                destBitrateEl.textContent = `${(route.tx_bitrate || 0).toFixed(2)} Mbps`;
+                                destBitrateEl.textContent = `${this.formatBitrate(route.tx_bitrate)} Mbps`;
                             }
                         });
                     }
@@ -275,7 +289,7 @@ class SRTGatewayUI {
                         Source: ${session.rx_mode} Port ${session.rx_port} | ${session.routes.length} Destination(s)
                     </div>
                     <div class="bitrate-display">
-                        <span class="bitrate-value">${(session.rx_bitrate || 0).toFixed(2)} Mbps</span>
+                        <span class="bitrate-value">${this.formatBitrate(session.rx_bitrate)} Mbps</span>
                         <canvas class="sparkline" id="spark-rx-${session.rx_port}" width="100" height="25"></canvas>
                     </div>
                 </div>
@@ -323,7 +337,7 @@ class SRTGatewayUI {
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Bitrate:</span>
-                    <span class="detail-value">${(session.rx_bitrate || 0).toFixed(2)} Mbps</span>
+                    <span class="detail-value">${this.formatBitrate(session.rx_bitrate)} Mbps</span>
                 </div>
             </div>
         `;
@@ -337,7 +351,7 @@ class SRTGatewayUI {
                         <div class="destination-header">
                             <span class="destination-number">${idx + 1}</span>
                             <span class="destination-name">${this.escapeHtml(route.name || `Destination ${idx + 1}`)}</span>
-                            <span class="destination-bitrate">${(route.tx_bitrate || 0).toFixed(2)} Mbps</span>
+                            <span class="destination-bitrate">${this.formatBitrate(route.tx_bitrate)} Mbps</span>
                         </div>
                         <div class="destination-details">
                             ${route.tx_ip}:${route.tx_port} (${route.tx_mode})
@@ -533,7 +547,7 @@ class SRTGatewayUI {
     updateSystemStatsValues() {
         const totalRoutes = this.sessions.length;
         const activeRoutes = this.sessions.filter(s => s.status === 'running').length;
-        const totalBitrate = this.calculateTotalBitrate().toFixed(2);
+        const totalBitrate = this.calculateTotalBitrate();
 
         // Update only if values changed
         const totalEl = document.getElementById('stat-total-routes');
@@ -560,9 +574,10 @@ class SRTGatewayUI {
      * Calculate total bitrate across all sessions
      */
     calculateTotalBitrate() {
-        return this.sessions.reduce((total, session) => {
+        const totalBps = this.sessions.reduce((total, session) => {
             return total + (session.rx_bitrate || 0);
         }, 0);
+        return this.formatBitrate(totalBps);
     }
 
     /**
